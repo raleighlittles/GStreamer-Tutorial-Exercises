@@ -4,9 +4,11 @@
 typedef struct _CustomData {
   GstElement *pipeline;
   GstElement *source;
-  GstElement *convert;
+  GstElement *aconvert;
   GstElement *resample;
-  GstElement *sink;
+  GstElement *vconvert;
+  GstElement *vsink;
+  GstElement *asink;
 } CustomData;
 
  
@@ -24,25 +26,35 @@ int main(int argc, char *argv[]) {
 
   /* Create the elements */
   data.source = gst_element_factory_make ("uridecodebin", "source");
-  data.convert = gst_element_factory_make ("audioconvert", "convert");
+  data.aconvert = gst_element_factory_make ("audioconvert", "convert");
   data.resample = gst_element_factory_make ("audioresample", "resample");
-  data.sink = gst_element_factory_make ("autoaudiosink", "sink");
+
+  data.asink = gst_element_factory_make ("autoaudiosink", "audio_sink");
+  data.vconvert = gst_element_factory_make("videoconvert", "csp");
+  data.vsink = gst_element_factory_make("autovideosink", "video_sink");
 
   /* Create the empty pipeline */
   data.pipeline = gst_pipeline_new ("test-pipeline");
 
-  if (!data.pipeline || !data.source || !data.convert || !data.resample || !data.sink) {
+  if (!data.pipeline || !data.source || !data.aconvert || !data.resample || !data.asink || !data.vsink || !data.vconvert ) {
     g_printerr ("Not all elements could be created.\n");
     return -1;
   }
 
   /* Build the pipeline. Note that we are NOT linking the source at this
    * point. We will do it later. */
-  gst_bin_add_many (GST_BIN (data.pipeline), data.source, data.convert, data.resample, data.sink, NULL);
-  if (!gst_element_link_many (data.convert, data.resample, data.sink, NULL)) {
-    g_printerr ("Elements could not be linked.\n");
+  gst_bin_add_many (GST_BIN (data.pipeline), data.source, data.aconvert, data.resample, data.vconvert, data.vsink, data.asink, NULL);
+
+  if (!gst_element_link_many (data.aconvert, data.resample, data.asink, NULL)) {
+    g_printerr ("Audio pipeline elements could not be linked.\n");
     gst_object_unref (data.pipeline);
     return -1;
+  }
+
+  if (!gst_element_link_many (data.vconvert, data.vsink, NULL)) {
+      g_printerr ("Video pipeline elements could not be linked.\n");
+      gst_object_unref (data.pipeline);
+      return -1;
   }
 
   /* Set the URI to play */
@@ -108,9 +120,21 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
- 
+
+// TODO: Correctly link the video converter element depending on the capability of the new pad discovered.
 static void pad_added_handler (GstElement *src, GstPad *new_pad, CustomData *data) {
-  GstPad *sink_pad = gst_element_get_static_pad (data->convert, "sink");
+
+  GstPad *aconverter_sink_pad = gst_element_get_static_pad (data->aconvert, "sink");
+  GstPad *vconverter_sink_pad = gst_element_get_static_pad (data->vconvert, "sink");
+
+  if (aconverter_sink_pad == NULL) {
+      g_printerr ("Audio sink pad is null.\n");
+  }
+
+  if (vconverter_sink_pad == NULL) {
+    g_printerr ("Video sink pad is null.\n");
+  }
+
   GstPadLinkReturn ret;
   GstCaps *new_pad_caps = NULL;
   GstStructure *new_pad_struct = NULL;
@@ -119,7 +143,7 @@ static void pad_added_handler (GstElement *src, GstPad *new_pad, CustomData *dat
   g_print ("Received new pad '%s' from '%s':\n", GST_PAD_NAME (new_pad), GST_ELEMENT_NAME (src));
 
   /* If our converter is already linked, we have nothing to do here */
-  if (gst_pad_is_linked (sink_pad)) {
+  if (gst_pad_is_linked (aconverter_sink_pad)) {
     g_print ("We are already linked. Ignoring.\n");
     goto exit;
   }
@@ -134,7 +158,7 @@ static void pad_added_handler (GstElement *src, GstPad *new_pad, CustomData *dat
   }
 
   /* Attempt the link */
-  ret = gst_pad_link (new_pad, sink_pad);
+  ret = gst_pad_link (new_pad, aconverter_sink_pad);
   if (GST_PAD_LINK_FAILED (ret)) {
     g_print ("Type is '%s' but link failed.\n", new_pad_type);
   } else {
@@ -147,5 +171,5 @@ exit:
     gst_caps_unref (new_pad_caps);
 
   /* Unreference the sink pad */
-  gst_object_unref (sink_pad);
+  gst_object_unref (aconverter_sink_pad);
 }

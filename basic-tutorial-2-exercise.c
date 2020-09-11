@@ -1,8 +1,14 @@
 #include <gst/gst.h>
 
-/* Exercise description: 
+/* 
+Exercide description:
 Add a video filter element in between the source and the sink of this pipeline. Use vertigotv for a nice effect.
+
+Note: I got the dreaded 'negotiation error' that the Exercise description warns about, which is why
+      I had to follow the suggestion of adding a `videoconvert` element.
 */
+
+
 
 int main(int argc, char *argv[]) {
   GstElement *pipeline, *source, *sink, *vfilter, *vconverter; // New
