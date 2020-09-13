@@ -120,8 +120,6 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-
-// TODO: Correctly link the video converter element depending on the capability of the new pad discovered.
 static void pad_added_handler (GstElement *src, GstPad *new_pad, CustomData *data) {
 
   GstPad *aconverter_sink_pad = gst_element_get_static_pad (data->aconvert, "sink");
