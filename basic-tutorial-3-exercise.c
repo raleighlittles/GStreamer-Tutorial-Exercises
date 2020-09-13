@@ -144,7 +144,7 @@ static void pad_added_handler (GstElement *src, GstPad *new_pad, CustomData *dat
 
   /* If our converter is already linked, we have nothing to do here */
   if (gst_pad_is_linked (aconverter_sink_pad)) {
-    g_print ("We are already linked. Ignoring.\n");
+    g_print ("Audio converter pad is already linked. Ignoring.\n");
     goto exit;
   }
 
@@ -152,17 +152,29 @@ static void pad_added_handler (GstElement *src, GstPad *new_pad, CustomData *dat
   new_pad_caps = gst_pad_get_current_caps (new_pad);
   new_pad_struct = gst_caps_get_structure (new_pad_caps, 0);
   new_pad_type = gst_structure_get_name (new_pad_struct);
-  if (!g_str_has_prefix (new_pad_type, "audio/x-raw")) {
-    g_print ("It has type '%s' which is not raw audio. Ignoring.\n", new_pad_type);
-    goto exit;
+
+
+  if (g_str_has_prefix (new_pad_type, "audio/x-raw")) {
+    g_print("New pad type is raw audio, attempting to link with audio converter...\n");
+    ret = gst_pad_link (new_pad, aconverter_sink_pad);
+
+    if (GST_PAD_LINK_FAILED (ret)) {
+      g_print ("Type is '%s' but link failed.\n", new_pad_type);
+    } else{ g_print ("Link succeeded (type '%s').\n", new_pad_type); }
   }
 
-  /* Attempt the link */
-  ret = gst_pad_link (new_pad, aconverter_sink_pad);
-  if (GST_PAD_LINK_FAILED (ret)) {
-    g_print ("Type is '%s' but link failed.\n", new_pad_type);
-  } else {
-    g_print ("Link succeeded (type '%s').\n", new_pad_type);
+  else if (g_str_has_prefix (new_pad_type, "video/x-raw")) {
+    g_print("New pad type is raw video, attempting to link with video converter...\n");
+    ret = gst_pad_link (new_pad, vconverter_sink_pad);
+
+    if (GST_PAD_LINK_FAILED (ret)) {
+        g_print ("Type is '%s' but link failed.\n", new_pad_type);
+    } else{ g_print ("Link succeeded (type '%s').\n", new_pad_type); }
+  }
+  
+  else {
+    g_print("New pad type isn't raw audio or raw video. Ignoring\n");
+    goto exit;
   }
 
 exit:
