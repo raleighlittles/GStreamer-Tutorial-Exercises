@@ -243,7 +243,7 @@ static void analyze_streams (CustomData *data) {
   GtkTextBuffer *text;
 
   /* Clean current contents of the widget */
-  // No longer needed.
+  // No longer needed, for now..
   // text = gtk_text_view_get_buffer (GTK_TEXT_VIEW (data->streams_list));
   // gtk_text_buffer_set_text (text, "", -1);
 
