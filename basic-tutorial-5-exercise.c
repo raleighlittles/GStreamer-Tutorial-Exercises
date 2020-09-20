@@ -124,18 +124,16 @@ static void create_ui (CustomData *data) {
   gtk_scale_set_draw_value (GTK_SCALE (data->slider), 0);
   data->slider_update_signal_id = g_signal_connect (G_OBJECT (data->slider), "value-changed", G_CALLBACK (slider_cb), data);
 
-//   data->streams_list = gtk_text_view_new ();
-//   gtk_text_view_set_editable (GTK_TEXT_VIEW (data->streams_list), FALSE);
-
-  GtkTreeStore* store = gtk_tree_store_new(1, G_TYPE_STRING);
+  GtkTreeStore* store = gtk_tree_store_new(/* numColums */ 1, G_TYPE_STRING);
+  data->streams_list = gtk_tree_view_new();
   GtkTreeIter iter;
-  gtk_tree_store_append (store, &iter, NULL); // get iterator
-  gtk_tree_store_set(store, &iter, 0, "Audio stream info here?", -1); // -1 required
+  gtk_tree_store_append (store, &iter, NULL);
+  gtk_tree_store_set (store, &iter, 0, "Stream 1", -1);
 
-  data->streams_list = gtk_tree_view_new_with_model( GTK_TREE_MODEL (store));
   GtkCellRenderer *renderer;
   GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes("Stream info", renderer, NULL);
   gtk_tree_view_append_column( GTK_TREE_VIEW (data->streams_list), column);
+  gtk_tree_view_set_model(GTK_TREE_VIEW (data->streams_list), GTK_TREE_MODEL (store));
 
   controls = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_box_pack_start (GTK_BOX (controls), play_button, FALSE, FALSE, 2);
