@@ -180,6 +180,7 @@ exit:
   if (new_pad_caps != NULL)
     gst_caps_unref (new_pad_caps);
 
-  /* Unreference the sink pad */
+  /* Unreference the audio and video sink pads */
   gst_object_unref (aconverter_sink_pad);
+  gst_object_unref (vconverter_sink_pad);
 }
